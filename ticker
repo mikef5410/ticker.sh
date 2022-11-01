@@ -1,0 +1,61 @@
+#!/bin/bash
+
+##
+## Call this from an xfce genmon panel widget
+##
+
+# list of stocks to show in the tooltip
+STOCKS="AVGO ^IXIC ^GSPC"
+
+# the stock to show on the panel - from list above starting at 0
+PANEL=0
+
+#Beginning, end of trading day
+SOD=$(date --date='TZ="America/New_York" 09:00 today' +%s)
+EOD=$(date --date='TZ="America/New_York" 17:00 today' +%s)
+CUR=$(date +%s)
+
+#Are we in the trading day?
+if [ $CUR -ge $SOD -a $CUR -le $EOD ]; then
+    echo -n ""
+else
+    echo -n ""
+    #exit 0  #nope... just leave
+fi
+    
+### No need to change anything below
+
+UPDATE=$(date)
+NUM_STOCKS=$(echo $STOCKS | awk '{for(i=0;i<=NF;i++); print i-1 }')
+
+declare -A stock=() price=() change=() percent=()
+{
+	c=0
+	while read -r STOCK PRICE CHANGE PERCENT; do
+		stock[$c]=$(printf %-8s $STOCK)
+		change[$c]=$(printf %10s $CHANGE)
+		price[$c]=$(printf %10s $PRICE)
+                if (( $(echo "$CHANGE < 0.0" | bc -l) )); then
+                    price[$c]=$(printf "<span foreground='red'>%10s</span>" $PRICE)
+                fi
+                if (( $(echo "$CHANGE > 0.0" | bc -l) )); then
+                    price[$c]=$(printf "<span foreground='lightgreen'>%10s</span>" $PRICE)
+                fi         
+		percent[$c]=$PERCENT
+		((c=c+1))
+	done
+} < <(env NO_COLOR=1 ticker.sh $STOCKS)
+
+OUT=$(echo ${stock[$PANEL]}${price[$PANEL]}${change[$PANEL]} "${percent[$PANEL]}" | sed -e 's/  */ /g')
+
+for (( c=0; c<$NUM_STOCKS; c++ ))
+do
+	TOOL="$TOOL${stock[$c]}${price[$c]}${change[$c]}\t${percent[$c]}\n"
+done
+TOOL="$TOOL\n<small><i>Last Updated: $UPDATE</i></small>"
+
+echo -e "<txt>$OUT</txt><tool><tt>$TOOL</tt></tool>"
+
+exit 0
+
+#FYI ... the genmon also supports onclick actions with <click>...</click> stanza

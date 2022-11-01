@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# originally from - https://github.com/pstadler/ticker.sh.git
 set -e
 
 LANG=C
